@@ -30,8 +30,30 @@ class Predictor(BasePredictor):
                 shutil.rmtree(directory)
             os.makedirs(directory)
 
+    
+    def get_extension(filename_or_url):
+        # Check if it's a URL by looking for a scheme (e.g., http, https)
+        if urlparse(filename_or_url).scheme:
+            try:
+                # Send a HEAD request to get the headers
+                response = requests.head(
+                    filename_or_url, allow_redirects=True, timeout=5)
+                if 'Content-Type' in response.headers:
+                    content_type = response.headers['Content-Type']
+                    # Split the content type to remove any additional parameters (e.g., charset)
+                    content_type = content_type.split(';')[0]
+                    extension = mimetypes.guess_extension(content_type)
+                    return extension or '.png'  # Default to .mp4 if MIME type lookup fails
+            except requests.RequestException as e:
+                print(f"Request failed: {e}")
+                return '.png'  # Default to .mp4 if request fails
+        else:
+            # Local file case: Use os.path.splitext to get the extension
+            return os.path.splitext(filename_or_url)[1]
+
+
     def handle_input_file(self, input_file: Path, filename: str):
-        file_extension = os.path.splitext(input_file)[1].lower()
+        file_extension = get_extension(input_file)
         if file_extension in [".jpg", ".jpeg"]:
             final_filename = f"{filename}.png"
             image = Image.open(input_file)
